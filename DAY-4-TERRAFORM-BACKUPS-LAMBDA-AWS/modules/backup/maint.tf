@@ -8,6 +8,10 @@ resource "aws_backup_plan" "this" {
     lifecycle {
       delete_after = var.delete_after
     }
+
+    copy_action {
+      destination_vault_arn = var.destination_vault_arn
+    }
   }
 }
 

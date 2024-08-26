@@ -1,49 +1,65 @@
-module "vpc" {
-  source = "./modules/vpc"
+module "backup_role_source" {
+  source            = "./modules/cross_account_backup_role"
+  remote_account_id = "533266983093"
+  role_name         = "BackupRoleSource"
+  permissions_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "ec2:CreateSnapshot",
+          "ec2:DescribeTags",
+          "ec2:DescribeVolumes",
+          "ec2:DeleteSnapshot",
+          "ec2:CreateTags",
+          "ec2:DeleteTags",
+          "ec2:DescribeSnapshots",
+          "backup:StartBackupJob",
+          "backup:ListBackupJobs",
+          "backup:DescribeBackupJob",
+          "backup:ListBackupPlans",
+          "backup:ListBackupVaults",
+          "backup:GetBackupVaultAccessPolicy",
+          "backup:GetBackupVaultNotifications",
+          "backup:ListRecoveryPointsByBackupVault",
+          "backup:ListBackupSelections",
+          "backup:DescribeBackupVault",
+          "backup:DescribeBackupPlan",
+          "backup:ListBackupJobs",
+          "backup:ListBackupPlanTemplates",
+          "backup:ListBackupVaults",
+          "backup:ListBackupPlans",
 
-  cidr_block         = "10.0.0.0/16"
-  vpc_name           = "my-vpc-orexe-day-4"
-  public_subnets     = ["10.0.1.0/24", "10.0.2.0/24"]
-  private_subnets    = ["10.0.3.0/24", "10.0.4.0/24"]
-  availability_zones = ["us-west-2a", "us-west-2b"]
-
-  tags = {
-    Environment = "dev"
-  }
+          "backup:CopyIntoBackupVault",
+          "backup:StartCopyJob"
+        ],
+        "Resource" : "*"
+      }
+    ]
+  })
 }
 
-module "rds" {
-  source = "./modules/rds"
-
-  allocated_storage       = 20
-  engine                  = "mysql"
-  engine_version          = "8.0"
-  instance_class          = "db.t3.micro"
-  db_name                 = "mydatabase"
-  username                = "admin"
-  password                = "password"
-  parameter_group_name    = "default.mysql8.0"
-  skip_final_snapshot     = true
-  backup_retention_period = 7
-  backup_window           = "07:00-09:00"
-  subnet_group_name       = "my-subnet-group"
-  subnet_ids              = module.vpc.private_subnet_ids
+module "ebs_volume" {
+  source            = "./modules/ebs"
+  availability_zone = "us-west-2a"
+  size              = 20 # Puedes ajustar el tamaño hasta 30GB
   tags = {
-    Name = "My RDS instance"
+    Name = "MyFreeTierEBSVolume"
   }
 }
-
 module "backup" {
   source = "./modules/backup"
 
-  backup_plan_name  = "my-backup-plan"
-  rule_name         = "daily-backup"
-  schedule          = "cron(0 5 * * ? *)"
-  delete_after      = 30
-  backup_vault_name = "my-backup-vault"
-  selection_name    = "my-backup-selection"
-  resources         = [module.rds.db_instance_arn]
-  backup_role_name  = "backup-role"
+  backup_plan_name      = "my-backup-plan"
+  rule_name             = "daily-backup"
+  schedule              = "cron(10 3 * * ? *)"
+  delete_after          = 30
+  backup_vault_name     = "my-backup-vault"
+  selection_name        = "my-backup-selection"
+  resources             = [module.ebs_volume.arn]
+  backup_role_name      = "backup-role"
+  destination_vault_arn = "arn:aws:backup:us-west-2:533266983093:backup-vault:Default"
 }
 
 resource "aws_sns_topic" "backup_notifications" {

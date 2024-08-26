@@ -37,3 +37,8 @@ variable "backup_role_name" {
   type        = string
   description = "The name of the IAM role for backup."
 }
+
+variable "destination_vault_arn" {
+  type        = string
+  description = "The ARN of the destination backup vault."
+}
