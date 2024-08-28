@@ -43,7 +43,7 @@ module "backup_role_source" {
 module "ebs_volume" {
   source            = "./modules/ebs"
   availability_zone = "us-west-2a"
-  size              = 20 # Puedes ajustar el tamaño hasta 30GB
+  size              = 8 # Puedes ajustar el tamaño hasta 30GB
   tags = {
     Name = "MyFreeTierEBSVolume"
   }
